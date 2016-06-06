@@ -19,3 +19,6 @@ github_username:  jekyll
 
 # Build settings
 markdown: kramdown
+pygments: true
+safe: true
+auto: true

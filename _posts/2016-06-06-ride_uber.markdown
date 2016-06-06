@@ -1,0 +1,120 @@
+---
+layout: post
+title:  "五分钟读懂 UML 类图"
+date:   2016-06-06 10:49:52 +0800
+
+---
+
+# 五分钟读懂 UML 类图
+ 
+
+相信各位同学在阅读一些源码分析类文章或是设计应用架构时没少与UML类图打交道。实际上，UML类图中最常用到的元素五分钟就能掌握，经常看到UML类图但还不太熟悉的小伙伴赶紧来一起认识一下它吧：） 
+
+一、类的属性的表示方式
+
+在UML类图中，类使用包含类名、属性（field）和方法（method）且带有分隔线的矩形来表示，比如下图表示一个Employee类，它包含name、age和email这3个属性，以及modifyInfo()方法。
+
+ <span> ![](http://img2.tuicool.com/Qj6bque.jpg!web) </span> 
+
+那么属性/方法名称前的加号和减号是什么意思呢？它们表示了这个属性或方法的可见性，UML类图中表示可见性的符号有三种：
+
+*   +: 表示public
+*   -: 表示private
+*   #: 表示protected（friendly也归入这类） 
+
+因此，上图中的Employee类具有3个私有属性和一个公有方法。
+
+实际上，属性的完整表示方式是这样的：
+
+ <div> 
+
+可见性 名称:类型 [ = 缺省值 ]
+
+ </div> 
+
+中括号中的内容表示是可选的。
+
+二、类的方法的表示方式
+
+上图中我们已经看到了方法的表现形式。实际上，方法的完整表示方式如下：
+
+ <div> 
+
+可见性 名称(参数列表) [ : 返回类型]
+
+ </div> 
+
+同样，中括号中的内容是可选的。
+
+比如在下图的Demo类中，定义了3个方法：
+
+ ![](http://img0.tuicool.com/aiIriyy.jpg!web) 
+
+*   public方法method1接受一个类型为Object的参数，返回值类型为void。
+*   protected方法method2无参数，返回值类型为String。
+*   private方法method3接收类型分别为int、int[]的参数，返回值类型为int。 
+
+#### 二、类与类之间关系的表示方式
+
+#### 1. 关联关系
+
+ <span>关联关系又可进一步分为单向关联、双向关联和自关联。</span> 
+
+#### （1）单向关联
+
+ <span> ![](http://img2.tuicool.com/6zi6z2A.jpg!web) </span> 
+
+我们可以看到，在UML类图中单向关联用一个带箭头的直线表示。上图表示每个顾客都有一个地址，这通过让Customer类持有一个类型为Address的成员变量来实现。
+
+#### （2）双向关联
+
+ <span> ![](http://img0.tuicool.com/ABN3Ej.jpg!web) </span> 
+
+从上图中我们很容易看出，所谓的双向关联就是双方各自持有对方类型的成员变量。在UML类图中，双向关联用一个不带箭头的直线来表示。上图中在Customer类中维护一个Product[]数组表示一个顾客购买了哪些产品；在Product类中维护一个Customer类型的成员变量表示这个产品被那个顾客所购买。
+
+#### （3）自关联
+
+ ![](http://img0.tuicool.com/6jQJjiR.png!web) 
+
+自关联在UML类图中用一个带有箭头且指向自身的直线表示。上图的意思就是Node类包含类型为Node的成员变量，也就是“自己包含自己”。
+
+#### 2. 聚合关系
+
+ <span> ** ![](http://img1.tuicool.com/ZRRRNbb.jpg!web) ** </span> 
+
+ 上图中的Car类与Engine类就是聚合关系（Car类中包含一个Engine类型的成员变量）。由上图我们可以看到，UML中 <span>聚合关系用带空心菱形和箭头的直线表示。聚合关系强调是“整体”包含“部分”，但是“部分”可以脱离“整体”而单独存在。比如上图中汽车包含了发动机，而发动机脱离了汽车也能够单独存在。</span> 
+
+3. 组合关系
+
+组合关系与聚合关系间的最大不同在于：这里的“部分”脱离了“整体”便不复存在。比如下图：
+
+ ![](http://img0.tuicool.com/BzYJnyI.jpg!web) 
+
+显然，嘴是头的一部分且不能脱离了头而单独存在。在UML类图中，组合关系用一个带实心菱形和箭头的直线表示。
+
+#### 4. 依赖关系
+
+ <span> ![](http://img0.tuicool.com/q2eui2J.jpg!web) </span> 
+
+从上图中我们可以看到，Driver的drive方法只有传入了一个Car对象才能发挥作用，因此我们说Driver类依赖于Car类。在UML类图中，依赖关系用一条带有箭头的虚线表示。
+
+#### 5. 继承关系
+
+继承关系对应的是extend关键字，在UML类图中用带空心三角形的直线表示，如下图所示中，Student类与Teacher类继承了Person类。 
+
+ ![](http://img1.tuicool.com/YVbEfu.jpg!web) 
+
+#### 6. 接口实现关系
+
+这种关系对应implements关键字，比如下图中，Car类与Ship类都实现了Vehicle接口。
+
+ ![](http://img0.tuicool.com/Mf2UzyB.jpg!web) 
+
+到了这里，UML类图中最常见的表示方式我们就介绍完了，有了这些我们就能读懂常见的UML类图了，剩下的遇到时再查即可。
+
+#### 三、参考资料
+
+#### http://www.uml.org.cn/oobject/201211231.asp
+
+长按或扫描二维码关注我们，让您利用每天等地铁的时间就能学会怎样写出优质app。
+ 
