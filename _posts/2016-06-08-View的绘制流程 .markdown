@@ -2,7 +2,9 @@
 layout: post
 title:  "View的绘制流程"
 date:   2016-06-08 10:49:52 +0800
+catalog:    true
 categories: [android,view,measure,layout,draw]
+
 ---
 在自定义控件这个学习系列里，首先写篇文章记录一下View的绘制流程，压压惊:-P。也为以后的自定义控件实践打个基础。虽然讲解View工作流程的文章很多，其中不乏很多精品文章，不过自己能从中理清思路，以自己之言总结出来，也是十分必要的。好的，我要开始装…不，总结了。
 

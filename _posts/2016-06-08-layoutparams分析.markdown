@@ -2,7 +2,9 @@
 layout: post
 title:  "layoutparams分析"
 date:   2016-06-08 10:49:52 +0800
+catalog:    true
 categories: [android,layoutparams]
+
 ---
 在上一篇文章里，我总结了一下自定义控件需要了解的基础知识：View的绘制流程——[《自定义控件知识储备-View的绘制流程》](http://blog.csdn.net/yisizhu/article/details/51527557)。其中，在View的测量流程里，View的测量宽高是由父控件的MeasureSpec和View自身的LayoutParams共同决定的。MeasureSpec是什么，上一篇文章里已经说得很清楚了（啥，没看过？快去路克路克，(๑•̀ㅂ•́)و✧）。而LayoutParams呢？是时候在这里做个了断了。
 

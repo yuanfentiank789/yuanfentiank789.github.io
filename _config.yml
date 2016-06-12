@@ -1,30 +1,109 @@
-# Welcome to Jekyll!
-#
-# This config file is meant for settings that affect your whole blog, values
-# which you are expected to set up once and rarely need to edit after that.
-# For technical reasons, this file is *NOT* reloaded automatically when you use
-# 'jekyll serve'. If you change this file, please restart the server process.
-
 # Site settings
-title: Your awesome title
+title: JackPeng
+SEOTitle: JackPeng博客
+header-img: img/nav-home.jpg
 email: yuanfentiank789@gmail.com
-description: > # this means to ignore newlines until "baseurl:"
-  Write an awesome description for your new site here. You can edit this
-  line in _config.yml. It will appear in your document head meta (for
-  Google search results) and in your feed.xml site description.
-baseurl: "" # the subpath of your site, e.g. /blog
-url: "http://yourdomain.com" # the base hostname & protocol for your site
-twitter_username: jekyllrb
-github_username:  jekyll
+description: "Android,Android技术博客,Android源码分析"
+keyword: "Android,Android技术博客,Android源码分析"
+url: "http://gityuan.com"              # your host, for absolute URL
+baseurl: ""                             # for example, '/blog' if your blog hosted on 'host/blog'
+
+
+
+# SNS settings
+RSS: true
+# weibo_username:     gityuan
+# zhihu_username:     gityuan
+google_userId:   101388994961262711072
+#github_username:    yuanhuihui
+#twitter_username:  gityuan
+#facebook_username:  gityuan
+# linkedin_username:  firstname-lastname-idxxxx
+
+
 
 # Build settings
-markdown: kramdown
-pygments: true
-safe: true
-auto: true
+# from 2016, 'pygments' is unsupported on GitHub Pages. Use 'rouge' for highlighting instead.
+highlighter: rouge
+permalink: /:year/:month/:day/:title/
+paginate: 10
+paginate_path: "page:num"
 
-# Serving
-detach:  false
-port:    4001
-host:    127.0.0.1
-baseurl: "" # does not include hostname
+exclude: ["less","node_modules","Gruntfile.js","package.json","README.md","README.zh.md"]
+anchorjs: true                          # if you want to customize anchor. check out line:181 of `post.html`
+
+# Gems
+# from PR#40, to support local preview for Jekyll 3.0
+gems: [jekyll-paginate]
+
+# Markdown settings
+# replace redcarpet to kramdown,
+# although redcarpet can auto highlight code, the lack of header-id make the catalog impossible, so I switch to kramdown
+# document: http://jekyllrb.com/docs/configuration/#kramdown
+markdown: kramdown
+kramdown:
+  input: GFM                            # use Github Flavored Markdown !important
+
+
+
+# Disqus settings
+#disqus_username: _your_disqus_short_name_
+
+# Duoshuo settings
+duoshuo_username: gityuan
+# Share component is depend on Comment so we can NOT use share only.
+duoshuo_share: true                     # set to false if you want to use Comment without Sharing
+
+
+
+
+# Analytics settings
+# Baidu Analytics
+# ba_track_id: 4cc1f2d8f3067386cc5cdb626a202900
+# Google Analytics
+# ga_track_id: 'UA-49627206-1'            # Format: UA-xxxxxx-xx
+# ga_domain: gityuan.com
+
+
+
+# Sidebar settings
+sidebar: true                           # whether or not using Sidebar.
+sidebar-about-description: "Android OS Developer"
+sidebar-avatar: /images/about-me/logo2.png   
+
+
+
+# Featured Tags
+featured-tags: true                     # whether or not using Feature-Tags
+featured-condition-size: 1              # A tag will be featured if the size of it is more than this condition value
+
+
+# hotpages
+hotpages: [
+		{
+        title: "Android 开篇    ",
+        href:  "http://gityuan.com/android"
+    }, {
+        title: "理解Android进程创建流程",
+        href:  "http://gityuan.com/2016/03/26/app-process-create/"
+    },{
+        title: "Binder系列 开篇",
+        href:  "http://gityuan.com/2015/10/31/binder-prepare/"
+    },{
+        title: "Android 内存分析命令",
+        href:  "http://gityuan.com/2016/01/02/memory-analysis-command/"
+    },{
+        title: "startService 流程分析",
+        href:  "http://gityuan.com/2016/03/06/start-service/"
+    },{
+        title: "如何自学 Android   ",
+        href:  "http://gityuan.com/2016/04/24/how-to-study-android/"
+    }
+]
+
+#money settings
+
+# money-alipay: /images/about-me/alipay.jpg
+# money-weixin: /images/about-me/weixin.jpg
+# money-description: 如果觉得我的文章对您所有帮助，请随意打赏，或者分享转发给更多朋友。您的支持与认可，将使我更加坚持不懈地创作，谢谢您！
+
