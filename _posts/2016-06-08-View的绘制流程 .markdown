@@ -1,0 +1,505 @@
+---
+layout: post
+title:  "View的绘制流程"
+date:   2016-06-08 10:49:52 +0800
+categories: [android,view,measure,layout,draw]
+---
+在自定义控件这个学习系列里，首先写篇文章记录一下View的绘制流程，压压惊:-P。也为以后的自定义控件实践打个基础。虽然讲解View工作流程的文章很多，其中不乏很多精品文章，不过自己能从中理清思路，以自己之言总结出来，也是十分必要的。好的，我要开始装…不，总结了。
+
+## 1. 前言
+
+当我们打开手机，开始看朋友圈，刷微博的时候，我们有考虑过在我们眼前的一个个View是如何从无到有的展示在我们眼前的么？有考虑过它们的感受么？（神经病才去考虑(ノಠಠ)ノ彡┻━┻……）。
+
+当我们在一张纸上画画的时候，哪怕是简单的一只小鸡，我们也不得不考虑下面几点：
+
+    这只鸡得画多大呀？多宽，多高？不能大的超过纸的范围吧？
+    这只鸡画在纸的哪里呢？是纸的中间还是靠下面一点呢？
+    确定好大小和位置了，该怎么画呢？公鸡母鸡？这只鸡是什么形状（当然是鸡形）？什么颜色？
+
+其实在屏幕上“画”一个View跟上述的流程也很相似。同样是经过了测量流程、布局流程以及绘制流程。我们都知道，Android界面布局是以一棵树的结构形式展现的，看我们的xml布局文件也看的出来。而绘制出整个界面肯定是要遍历整个View树，对这棵树的所有节点分别进行测量，布局和绘制。万事皆有源头，绘制这棵树得从根节点顶级View开始画起，也就是DecorView。至于啥是DecorView，大家可以自行去查阅资料。
+
+系统内部会依次调用DecorView的measure，layout和draw三大流程方法。measure方法又会调用onMeasure方法对它所有的子元素进行测量，如此反复调用下去就能完成整个View树的遍历测量。同样的，layout和draw两个方法里也会调用相似的方法去对整个View树进行遍历布局和绘制。
+
+下面就以这三个流程来了解一下View从无到有的不容易。
+
+后退，我要开始装逼了
+
+## 2. 测量流程-measure
+
+测量流程得分情况来看，如果是单身View，那自然是没话说，自己照顾好自己，本分的测量好自己就行。而如果是为人父母的ViewGroup，那就得顾家了，除了测量好自己，还得去调用孩子们的measure方法让孩子们都测量好自己。甚至很多时候，ViewGroup得先测量好孩子们，最后才能确定自己的测量大小。一把辛酸泪…(ノへ￣、)
+
+下面分别来看看View和ViewGroup的测量过程：
+
+### 2.1 View的measure过程
+
+View类的measure方法的签名如下：
+
+```
+public final void measure(int widthMeasureSpec, int heightMeasureSpec)
+```
+
+
+看到这个方法，我得提出两个问题：
+
+    形参widthMeasureSpec和heightMeasureSpec是几个意思？是用来测量自身大小的宽高么？
+    measure方法是final修饰的，那怎么通过重写此方法来实现自定义控件的测量方式呢？
+
+要回答第1个问题，首先得弄清楚：在界面的绘制过程中，View的这个方法是被它的父控件调用的，也就是说widthMeasureSpec和heightMeasureSpec是通过父控件传递进来的，如果这两个参数是完全用来决定孩子View的大小，那孩子们也太没主动权了。
+
+呵呵哒
+
+事实上，这两个参数在很大程度上是决定了一个View的尺寸的，只不过孩子View可能各有各的特点，它们是能根据自身的特点来进行调整的，具体的呢以后再说。先来具体的看看MeasureSpec：
+测量规格MeasureSpec
+
+像widthMeasureSpec这样的32位的int类型的数肯定是有自己的故事滴，它的高2位代表测量模式Mode，低30位代表测量大小Size。系统提供了一个MeasureSpec类来对这个参数进行操作，代码如下：
+
+```
+public static class MeasureSpec {
+
+        private static final int MODE_SHIFT = 30;
+        private static final int MODE_MASK  = 0x3 << MODE_SHIFT;
+        public static final int UNSPECIFIED = 0 << MODE_SHIFT;
+        public static final int EXACTLY     = 1 << MODE_SHIFT;
+        public static final int AT_MOST     = 2 << MODE_SHIFT;
+
+
+        public static int makeMeasureSpec(int size, int mode) {
+            if (sUseBrokenMakeMeasureSpec) {
+                return size + mode;
+            } else {
+                return (size & ~MODE_MASK) | (mode & MODE_MASK);
+            }
+        }
+
+
+        public static int getMode(int measureSpec) {
+            return (measureSpec & MODE_MASK);
+        }
+
+
+        public static int getSize(int measureSpec) {
+            return (measureSpec & ~MODE_MASK);
+        }
+    }
+```
+   
+   上面的代码也不复杂，都是通过位运算来进行操作的。（我在平时位运算用的少，所以我还得慢慢捋一捋才看的明白。╥﹏╥…）不过，这样做的好处就是更省内存，因为要是我来做的话，肯定是为这样的测量规格定义一个类，里面有mode和size两个属性，这样每次就会new很多测量规格的对象了。
+
+好了，喝口水，接着往下说。既然测量规格是由测量模式mode和测量大小size组成的，size好说，那测量模式mode代表什么含义呢。由上面的代码可知，测量模式有三类：
+
+    UNSPECIFIED
+
+    父控件不对你有任何限制，你想要多大给你多大，想上天就上天。这种情况一般用于系统内部，表示一种测量状态。（这个模式主要用于系统内部多次Measure的情形，并不是真的说你想要多大最后就真有多大）
+
+    EXACTLY
+
+    父控件已经知道你所需的精确大小，你的最终大小应该就是这么大。
+
+    AT_MOST
+
+    你的大小不能大于父控件给你指定的size，但具体是多少，得看你自己的实现。
+
+上面的三种模式的区别我们弄清楚了，但是父控件是怎样给它的孩子们构建好测量大小和测量模式的呢？这其中必有蹊跷。好吧，冤有头债有主，我们得去ViewGroup类里去找找看。ViewGroup里提供了一个静态方法getChildMeasureSpec用来获取子控件的测量规格，下面是代码和详细注释：
+
+```
+/**
+     *
+     * 目标是将父控件的测量规格和child view的布局参数LayoutParams相结合，得到一个
+     * 最可能符合条件的child view的测量规格。  
+
+     * @param spec 父控件的测量规格
+     * @param padding 父控件里已经占用的大小
+     * @param childDimension child view布局LayoutParams里的尺寸
+     * @return child view 的测量规格
+     */
+    public static int getChildMeasureSpec(int spec, int padding, int childDimension) {
+        int specMode = MeasureSpec.getMode(spec); //父控件的测量模式
+        int specSize = MeasureSpec.getSize(spec); //父控件的测量大小
+
+        int size = Math.max(0, specSize - padding);
+
+        int resultSize = 0;
+        int resultMode = 0;
+
+        switch (specMode) {
+        // 当父控件的测量模式 是 精确模式，也就是有精确的尺寸了
+        case MeasureSpec.EXACTLY:
+            //如果child的布局参数有固定值，比如"layout_width" = "100dp"
+            //那么显然child的测量规格也可以确定下来了，测量大小就是100dp，测量模式也是EXACTLY
+            if (childDimension >= 0) {
+                resultSize = childDimension;
+                resultMode = MeasureSpec.EXACTLY;
+            } 
+
+            //如果child的布局参数是"match_parent"，也就是想要占满父控件
+            //而此时父控件是精确模式，也就是能确定自己的尺寸了，那child也能确定自己大小了
+            else if (childDimension == LayoutParams.MATCH_PARENT) {
+                resultSize = size;
+                resultMode = MeasureSpec.EXACTLY;
+            }
+            //如果child的布局参数是"wrap_content"，也就是想要根据自己的逻辑决定自己大小，
+            //比如TextView根据设置的字符串大小来决定自己的大小
+            //那就自己决定呗，不过你的大小肯定不能大于父控件的大小嘛
+            //所以测量模式就是AT_MOST，测量大小就是父控件的size
+            else if (childDimension == LayoutParams.WRAP_CONTENT) {
+                resultSize = size;
+                resultMode = MeasureSpec.AT_MOST;
+            }
+            break;
+
+        // 当父控件的测量模式 是 最大模式，也就是说父控件自己还不知道自己的尺寸，但是大小不能超过size
+        case MeasureSpec.AT_MOST:
+            //同样的，既然child能确定自己大小，尽管父控件自己还不知道自己大小，也优先满足孩子的需求
+            if (childDimension >= 0) {
+                resultSize = childDimension;
+                resultMode = MeasureSpec.EXACTLY;
+            } 
+            //child想要和父控件一样大，但父控件自己也不确定自己大小，所以child也无法确定自己大小
+            //但同样的，child的尺寸上限也是父控件的尺寸上限size
+            else if (childDimension == LayoutParams.MATCH_PARENT) {
+                resultSize = size;
+                resultMode = MeasureSpec.AT_MOST;
+            }
+            //child想要根据自己逻辑决定大小，那就自己决定呗
+            else if (childDimension == LayoutParams.WRAP_CONTENT) {
+                resultSize = size;
+                resultMode = MeasureSpec.AT_MOST;
+            }
+            break;
+
+        // Parent asked to see how big we want to be
+        case MeasureSpec.UNSPECIFIED:
+            if (childDimension >= 0) {
+                // Child wants a specific size... let him have it
+                resultSize = childDimension;
+                resultMode = MeasureSpec.EXACTLY;
+            } else if (childDimension == LayoutParams.MATCH_PARENT) {
+                // Child wants to be our size... find out how big it should
+                // be
+                resultSize = 0;
+                resultMode = MeasureSpec.UNSPECIFIED;
+            } else if (childDimension == LayoutParams.WRAP_CONTENT) {
+                // Child wants to determine its own size.... find out how
+                // big it should be
+                resultSize = 0;
+                resultMode = MeasureSpec.UNSPECIFIED;
+            }
+            break;
+        }
+        return MeasureSpec.makeMeasureSpec(resultSize, resultMode);
+    }
+```
+    
+根据上面的代码，可以列出默认情况下，View的测量规格的生成规则：
+
+![测量规格图](http://img.blog.csdn.net/20140808003846832?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQvc2luZ3doYXRpd2FubmE=/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast)
+
+（注：图片来自任玉刚博客   [任玉刚：Android View系统解析(下)](http://blog.csdn.net/singwhatiwanna/article/details/38426471)）
+
+现在我们知道了，View的测量规格是由**父控件的测量规格**和**自身的LayoutParams**共同决定的。并且在普通情况下，会满足上面表格里的规则。但是那是在普通情况下，而在我们自定义控件中，有时候是根据特有的逻辑去得到测量规格的。所以，掌握好原理，以不变应万变才是上策。
+
+解释完MeasureSpec，就让我们回到一开始提出的第2个问题：
+
+ 1.  measure方法是final修饰的，那怎么通过重写此方法来实现自定义控件的测量方式呢？
+
+我们来看看measure方法的实现：
+
+```
+public final void measure(int widthMeasureSpec, int heightMeasureSpec) {
+
+            ...
+
+            int cacheIndex = forceLayout ? -1 : mMeasureCache.indexOfKey(key);
+            if (cacheIndex < 0 || sIgnoreMeasureCache) {
+                // measure ourselves, this should set the measured dimension flag back
+                onMeasure(widthMeasureSpec, heightMeasureSpec);
+                mPrivateFlags3 &= ~PFLAG3_MEASURE_NEEDED_BEFORE_LAYOUT;
+            } else {
+                long value = mMeasureCache.valueAt(cacheIndex);
+                // Casting a long to int drops the high 32 bits, no mask needed
+                setMeasuredDimensionRaw((int) (value >> 32), (int) value);
+                mPrivateFlags3 |= PFLAG3_MEASURE_NEEDED_BEFORE_LAYOUT;
+            }
+
+            // flag not set, setMeasuredDimension() was not invoked, we raise
+            // an exception to warn the developer
+            if ((mPrivateFlags & PFLAG_MEASURED_DIMENSION_SET) != PFLAG_MEASURED_DIMENSION_SET) {
+                throw new IllegalStateException("onMeasure() did not set the"
+                        + " measured dimension by calling"
+                        + " setMeasuredDimension()");
+            }
+
+            mPrivateFlags |= PFLAG_LAYOUT_REQUIRED;
+        }
+
+       ...
+    }
+    
+```
+  
+  看到了我们熟悉的onMeasure方法啦，所以我们想要实现自己自定义控件的测量方式，就得重写onMeasure方法。再来跟进看看onMeasure方法的实现：
+  
+```
+  protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        setMeasuredDimension(getDefaultSize(getSuggestedMinimumWidth(), widthMeasureSpec),
+                getDefaultSize(getSuggestedMinimumHeight(), heightMeasureSpec));
+    }
+```  
+  
+  这方法一层嵌一层的，还是从里往外接着看吧，对于getSuggestedMinimumWidth和getSuggestedMinimumHeight方法，顾名思义，就是得到建议的最小的宽/高。什么意思呢？以getSuggestedMinimumWidth为例：
+  
+```
+  protected int getSuggestedMinimumWidth() {
+        return (mBackground == null) ? mMinWidth : max(mMinWidth, mBackground.getMinimumWidth());
+    }
+```
+  mMinWidth属性对应的就是xml布局里的android:minWidth属性，设置最小宽度。mBackground.getMinimumWidth()方法返回的就是View背景Drawable的原始宽度，这个宽度跟背景的类型有关。比如我们给View的背景设置一张图片，那这个方法返回的宽度就是图片的宽度，而如果我们给View背景设置的是颜色，那么这个方法返回的宽度则是0。具体的大家可以自行查阅Drawable尺寸的相关资料。所以，这个方法的返回的宽度是：如果View没有设置背景，那就返回xml布局里的android:minWidth属性定义的值，默认为0；如果View设置了背景，就返回背景的宽度和mMinWidth中的最大值。
+
+再来看getDefaultSize方法：
+
+```
+public static int getDefaultSize(int size, int measureSpec) {
+        int result = size;
+        int specMode = MeasureSpec.getMode(measureSpec);
+        int specSize = MeasureSpec.getSize(measureSpec);
+
+        switch (specMode) {
+        case MeasureSpec.UNSPECIFIED:
+            result = size;//这里的size就是上面getSuggestedMinimumWidth/height的返回值
+            break;
+        case MeasureSpec.AT_MOST:
+        case MeasureSpec.EXACTLY:
+            result = specSize;//测量规格里的尺寸
+            break;
+        }
+        return result;
+    }
+```
+可以看出，View在当测量模式为`UNSPECIFIED`时，返回的就是上面`getSuggestedMinimumWidth/Height()`方法里的大小。其实这对我们自定义控件并**没有什么影响**，因为上文有提到过，`UNSPECIFIED`一般用于系统内部的测量过程，对我们正常逻辑没什么影响。我们的重点还是应该放在`AT_MOST`和`EXACTLY`两种情况下。对于这两种情况，`getDefaultSize`十分简单粗暴，直接返回了specSize，也就是View的测量规格里的测量尺寸。
+
+![这里写图片描述](http://img.blog.csdn.net/20160527204138943)，不知道大家在看完上面的代码以后，有没有发现一个“碧油鸡”，在`AT_MOST`和`EXACTLY`两种情况下返回的尺寸竟然都是specSize，这意味着什么呢？
+
+> 自定义View控件时，我们需要重写onMeasure方法并设置wrap_content时自身的大小。否则在xml布局中使用wrap_content时与match_parent的效果一样。
+
+为什么呢？如果View在xml布局中使用wrap_content，根据上面提到的规则表格，它的测量模式是AT_MOST模式，测量尺寸specSize是parentSize，而`getDefaultSize`方法在AT_MOST里直接返回specSize，也就是等于父容器的剩余空间大小，这和match_parent是一样的。所以我们需要自己来处理AT_MOST模式下的宽高。
+
+一个重写`onMeasure`方法来支持wrap_content属性的模版如下：
+
+```
+protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+
+        int widthSpecMode = MeasureSpec.getMode(widthMeasureSpec);
+        int widthSpecSize = MeasureSpec.getSize(widthMeasureSpec);
+        int heightSpecMode = MeasureSpec.getMode(heightMeasureSpec);
+        int heightSpecSize = MeasureSpec.getSize(heightMeasureSpec);
+
+        int wrapWidth,wrapHeight;//根据View的逻辑得到，比如TextView根据设置的文字计算wrap_content时的大小
+
+        if(widthSpecMode == MeasureSpec.AT_MOST && heightSpecMode == MeasureSpec.AT_MOST){
+            setMeasuredDimension(wrapWidth, wrapHeight);
+        }else if(widthSpecMode == MeasureSpec.AT_MOST){
+            setMeasuredDimension(wrapWidth, heightSpecSize);
+        }else if(heightSpecMode == MeasureSpec.AT_MOST){
+            setMeasuredDimension(widthSpecSize, wrapHeight);
+        }
+}
+```
+以上代码可以直接应用到我们的自定义控件里去，当然最重要的还是大家得对AT_MOST模式留点心，记得对它特别对待就行。
+
+好的，我们再看最外层的方法setMeasuredDimension：
+
+```
+protected final void setMeasuredDimension(int measuredWidth, int measuredHeight) {
+        boolean optical = isLayoutModeOptical(this);
+        if (optical != isLayoutModeOptical(mParent)) {
+            Insets insets = getOpticalInsets();
+            int opticalWidth  = insets.left + insets.right;
+            int opticalHeight = insets.top  + insets.bottom;
+
+            measuredWidth  += optical ? opticalWidth  : -opticalWidth;
+            measuredHeight += optical ? opticalHeight : -opticalHeight;
+        }
+        setMeasuredDimensionRaw(measuredWidth, measuredHeight);
+    }
+
+ private void setMeasuredDimensionRaw(int measuredWidth, int measuredHeight) {
+        mMeasuredWidth = measuredWidth;
+        mMeasuredHeight = measuredHeight;
+
+        mPrivateFlags |= PFLAG_MEASURED_DIMENSION_SET;
+    }    
+```
+setMeasuredDimension方法里调用了setMeasuredDimensionRaw方法，在这个方法里面，终于看到了我们熟悉的mMeasuredWidth和measuredHeight的赋值语句。从此以后，我们就可以安心的调用View的getMeasureWidth()和getMeasureHeight()方法了！(≧∇≦)ﾉ
+### <a name="t4"></a>2.2 ViewGroup的measure过程
+
+ViewGroup并没有重写View的`onMeasure`方法，这需要它的子类去根据相应的逻辑去实现，比如LinearLayout与RelativeLayout对child view的测量逻辑显然是不同的。不过，ViewGroup倒是提供了一个`measureChildren`的方法，貌似可以用来测量child的样子，看看源码：
+
+```
+protected void measureChildren(int widthMeasureSpec, int heightMeasureSpec) {
+        final int size = mChildrenCount;
+        final View[] children = mChildren;
+        for (int i = 0; i < size; ++i) {
+            final View child = children[i];
+            if ((child.mViewFlags & VISIBILITY_MASK) != GONE) {
+                measureChild(child, widthMeasureSpec, heightMeasureSpec);
+            }
+        }
+    }
+```
+上面的代码逻辑很清晰，就是遍历每个孩子，调用measureChild方法对其进行测量，接着来看看measureChild:
+
+```
+protected void measureChild(View child, int parentWidthMeasureSpec,
+            int parentHeightMeasureSpec) {
+        final LayoutParams lp = child.getLayoutParams();
+
+        final int childWidthMeasureSpec = getChildMeasureSpec(parentWidthMeasureSpec,
+                mPaddingLeft + mPaddingRight, lp.width);
+        final int childHeightMeasureSpec = getChildMeasureSpec(parentHeightMeasureSpec,
+                mPaddingTop + mPaddingBottom, lp.height);
+
+        child.measure(childWidthMeasureSpec, childHeightMeasureSpec);
+    }
+```
+`measureChild`方法里，会取出child的LayoutParams，再结合父控件的测量规格和已被占用的空间`Padding`，作为参数传递给`getChildMeasureSpec`方法，在`getChildMeasureSpec`里会组合生成child控件的测量规格。`getChildMeasureSpec`方法的逻辑在上面的MeasureSpec部分有详细说明。最后，当然还是得调用child的`measure`方法啦，让孩子根据父母的指引去测量自己。
+
+在我看来，我们在自己自定义控件时，上面的这两个方法几乎不会用到。因为`measureChildren`太过简单粗暴，我们一般都会考虑孩子们之间的逻辑关系(顺序、间隔等)，再计算他们的测量规格。不过这个方法也给我们一点启示，就是：
+
+> 测量子元素时，对可见性为GONE的View要做特殊处理，一般来说就是跳过对它们的测量，来优化布局。
+
+而`measureChild`方法只考虑了父控件的padding，但是没考虑到child view的margin，这就会导致child view在使用`match_parent`属性的时候，margin属性会有问题。（什么？你说你自定义的ViewGroup对孩子不支持margin属性不就不会有问题了么…是是是，那当我没说….）当然，ViewGroup里为此也提供了另一个测量child的方法：
+
+```
+protected void measureChildWithMargins(View child,
+            int parentWidthMeasureSpec, int widthUsed,
+            int parentHeightMeasureSpec, int heightUsed) {
+        final MarginLayoutParams lp = (MarginLayoutParams) child.getLayoutParams();
+
+        final int childWidthMeasureSpec = getChildMeasureSpec(parentWidthMeasureSpec,
+                mPaddingLeft + mPaddingRight + lp.leftMargin + lp.rightMargin
+                        + widthUsed, lp.width);
+        final int childHeightMeasureSpec = getChildMeasureSpec(parentHeightMeasureSpec,
+                mPaddingTop + mPaddingBottom + lp.topMargin + lp.bottomMargin
+                        + heightUsed, lp.height);
+
+        child.measure(childWidthMeasureSpec, childHeightMeasureSpec);
+    }
+```
+measureChildWithMargins方法，顾名思义，比measureChild方法多考虑了个margin。看源码也看得出来，的确是这样。所以一般情况下，这个方法使用的更多一些。
+
+## <a name="t5"></a>3.布局流程-layout
+
+布局的流程就没有测量流程那么“蜿蜒曲折”了。对于单身View来说，调用`layout`方法确定好自己的位置，设置好位置属性的值（`mLeft/mRgiht`,`mTop/mBottom`）就行。而对于父母ViewGroup来说，还得通过调用`onLayout`方法帮助孩子们确定好位置。来看看View的`layout`方法：
+
+```
+public void layout(int l, int t, int r, int b) {
+        if ((mPrivateFlags3 & PFLAG3_MEASURE_NEEDED_BEFORE_LAYOUT) != 0) {
+            onMeasure(mOldWidthMeasureSpec, mOldHeightMeasureSpec);
+            mPrivateFlags3 &= ~PFLAG3_MEASURE_NEEDED_BEFORE_LAYOUT;
+        }
+
+        int oldL = mLeft;
+        int oldT = mTop;
+        int oldB = mBottom;
+        int oldR = mRight;
+
+        boolean changed = isLayoutModeOptical(mParent) ?
+                setOpticalFrame(l, t, r, b) : setFrame(l, t, r, b);
+
+        if (changed || (mPrivateFlags & PFLAG_LAYOUT_REQUIRED) == PFLAG_LAYOUT_REQUIRED) {
+            onLayout(changed, l, t, r, b);
+            mPrivateFlags &= ~PFLAG_LAYOUT_REQUIRED;
+
+            ListenerInfo li = mListenerInfo;
+            if (li != null && li.mOnLayoutChangeListeners != null) {
+                ArrayList<OnLayoutChangeListener> listenersCopy =
+                        (ArrayList<OnLayoutChangeListener>)li.mOnLayoutChangeListeners.clone();
+                int numListeners = listenersCopy.size();
+                for (int i = 0; i < numListeners; ++i) {
+                    listenersCopy.get(i).onLayoutChange(this, l, t, r, b, oldL, oldT, oldR, oldB);
+                }
+            }
+        }
+
+        mPrivateFlags &= ~PFLAG_FORCE_LAYOUT;
+        mPrivateFlags3 |= PFLAG3_IS_LAID_OUT;
+    }
+
+ protected boolean setFrame(int left, int top, int right, int bottom) {
+        boolean changed = false;
+
+        if (mLeft != left || mRight != right || mTop != top || mBottom != bottom) {
+            changed = true;
+
+            ...
+
+            // Invalidate our old position
+            invalidate(sizeChanged);
+
+            mLeft = left;
+            mTop = top;
+            mRight = right;
+            mBottom = bottom;
+            mRenderNode.setLeftTopRightBottom(mLeft, mTop, mRight, mBottom);
+
+            ...
+        }
+        return changed;
+    }
+```
+从上面的代码，能看到`layout`方法首先会调用`setFrame`方法来给View的四个顶点属性赋值，即mLeft，mRight，mTop，mBottom四个值，此时这个View的位置就确定了。同时我们也就能通过调用`getWidth()`和`getHeight()`方法来获取View的实际宽高了。</p>
+
+接下来，`onLayout`方法才会被调用，这也意味着我们在自定义ViewGroup时，想要重写`onLayout`方法给我们的子元素定位，是可以直接调用`getWidth()`和`getHeight()`方法来获取ViewGroup的真实宽高的。在View类里的`onLayout`方法是个空方法，而在ViewGroup方法里声明成了抽象方法，所以继承ViewGroup的类都得自己去实现自己定位子元素的逻辑。
+
+最后，在`layout`方法的最后我们能看到一个`OnLayoutChangeListener`的集合，看名字我们也猜得出，这是View位置发生改变时的回调接口。所以我们可以通过`addOnLayoutChangeListener`方法可以监听一个View的位置变化，并做出想要的响应。（看源码的时候才发现这个回调接口的，以前都不知道。新技能get！︿(￣︶￣)︿）
+
+## <a name="t6"></a>4.绘制流程-draw
+
+绘制的流程也就是通过调用View的`draw`方法实现的。`draw`方法里的逻辑看起来更清晰，我就不贴源码了。一般是遵循下面几个步骤：
+
+1.  绘制背景 – drawBackground()
+2.  绘制自己 – onDraw()
+3.  绘制孩子 – dispatchDraw()
+4.  绘制装饰 – onDrawScrollbars()
+
+由于不同的控件都有自己不同的绘制实现，所以View的`onDraw`方法肯定是空方法。而ViewGroup由于需要照顾孩子们的绘制，所以肯定在`dispatchDraw`方法里遍历调用了child的`draw`方法。不信？不信咱来看看ViewGroup里重写的`dispatchDraw`方法：
+
+```
+protected void dispatchDraw(Canvas canvas) {
+
+        ...
+
+        for (int i = 0; i < childrenCount; i++) {
+            int childIndex = customOrder ? getChildDrawingOrder(childrenCount, i) : i;
+            final View child = (preorderedList == null)
+                    ? children[childIndex] : preorderedList.get(childIndex);
+            if ((child.mViewFlags & VISIBILITY_MASK) == VISIBLE || child.getAnimation() != null) {
+                more |= drawChild(canvas, child, drawingTime);
+            }
+        }
+
+        ...
+    }    
+
+protected boolean drawChild(Canvas canvas, View child, long drawingTime) {
+        return child.draw(canvas, this, drawingTime);
+    }
+```
+ViewGroup里的`dispatchDraw`方法遍历调用`drawChild`方法，`drawChild`方法又调用了child的`draw(canvas, this, drawingTime)`方法，最后还是调用到了child的`draw(canvas)`方法。如此这般，绘制流程也就一层一层的传递下去了。</p>
+
+好的，说完了…(*ﾟｰﾟ)…………………………………..
+
+## <a name="t7"></a>5.总结
+
+我已经无力总结了，没想到一篇总结的文章写了我两天半…![哭泣](http://img.blog.csdn.net/20160528145027425)。不过，自己在总结的过程中确实也学到了蛮多，加深了对View的绘制流程的理解，也弄清楚了一些模糊的知识点。当然了，也希望我的文章能对正在学Android开发的小伙伴们有所帮助。
+
+当然了，这些都属于自定义控件的基本功，还需要在实践中多积累一些相关的经验，并逐渐做到融会贯通，这样才能提高自己的水平。keep going!
+
+## <a name="t9"></a>6.参考资料
+
+<ul>
+<li>《Android开发艺术探索》</li>
+<li>[郭霖：Android视图绘制流程完全解析，带你一步步深入了解View(二)](http://blog.csdn.net/guolin_blog/article/details/16330267)</li>
+<li>[任玉刚：Android View系统解析(下)](http://blog.csdn.net/singwhatiwanna/article/details/38426471)
