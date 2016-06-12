@@ -41,8 +41,9 @@ public final void measure(int widthMeasureSpec, int heightMeasureSpec)
 
 看到这个方法，我得提出两个问题：
 
-    形参widthMeasureSpec和heightMeasureSpec是几个意思？是用来测量自身大小的宽高么？
-    measure方法是final修饰的，那怎么通过重写此方法来实现自定义控件的测量方式呢？
+    1 形参widthMeasureSpec和heightMeasureSpec是几个意思？是用来测量自身大小的宽高么？
+    
+    2 measure方法是final修饰的，那怎么通过重写此方法来实现自定义控件的测量方式呢？
 
 要回答第1个问题，首先得弄清楚：在界面的绘制过程中，View的这个方法是被它的父控件调用的，也就是说widthMeasureSpec和heightMeasureSpec是通过父控件传递进来的，如果这两个参数是完全用来决定孩子View的大小，那孩子们也太没主动权了。
 
