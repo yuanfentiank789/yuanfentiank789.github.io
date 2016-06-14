@@ -626,6 +626,7 @@ new Thread(new Runnable() {
 
 ok，到此我们的存入缓存就分析完成了。再次总结下，首先调用editor，拿到指定的dirtyFile的OutputStream，你可以尽情的进行写操作，写完以后呢，记得调用commit. 
 commit中会检测是你是否发生IOException，如果没有发生，则将dirtyFile->cleanFile，将readable=true，写入CLEAN记录。如果发生错误，则删除dirtyFile,从lruEntries中移除，然后写入一条REMOVE记录。
+
 ## 读取缓存
 
 缓存已经写入成功之后，接下来我们就该学习一下如何读取了。读取的方法要比写入简单一些，主要是借助DiskLruCache的get()方法实现的，接口如下所示：
