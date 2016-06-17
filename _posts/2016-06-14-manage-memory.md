@@ -25,7 +25,7 @@ tags:
 <!-- more -->
 
 ## 在Android 2.3.3及以下版本管理内存(Manage Memory on Android 2.3.3 and Lower)
-在Android 2.3.3 (API level 10) 以及更低版本上，推荐使用<a href="http://developer.android.com/reference/android/graphics/Bitmap.html#recycle()">recycle()</a>. 如果在你的程序中显示了大量的bitmap数据，你很可能会遇到[OutOfMemoryError](http://developer.android.com/reference/java/lang/OutOfMemoryError.html)错误. <a href="http://developer.android.com/reference/android/graphics/Bitmap.html#recycle()">recycle()</a>方法可以使得程序尽快的释放内存.
+在Android 2.3.3 (API level 10) 以及更低版本，推荐使用<a href="http://developer.android.com/reference/android/graphics/Bitmap.html#recycle()">recycle()</a>. 如果在你的程序中显示了大量的bitmap数据，你很可能会遇到[OutOfMemoryError](http://developer.android.com/reference/java/lang/OutOfMemoryError.html)错误. <a href="http://developer.android.com/reference/android/graphics/Bitmap.html#recycle()">recycle()</a>方法可以使得程序尽快的释放内存.
 > **Caution:**只有你确保这个bitmap不再需要用到的时候才应该使用recycle(). 如果你执行recycle()，然后尝试绘制这个bitmap, 你将得到错误:`"Canvas: trying to use a recycled bitmap"`.
 
 下面的代码片段演示了使用recycle()的例子. 它使用了引用计数的方法(`mDisplayRefCount` 与 `mCacheRefCount`)来追踪一个bitmap目前是否有被显示或者是在缓存中. 当下面条件满足时回收bitmap:
@@ -107,10 +107,10 @@ tags:
             BitmapDrawable oldValue, BitmapDrawable newValue) {
         if (RecyclingBitmapDrawable.class.isInstance(oldValue)) {
             // The removed entry is a recycling drawable, so notify it
-            // that it has been removed from the memory cache.
+            // that it has been removed from the memory cache.prior Android 3.0
             ((RecyclingBitmapDrawable) oldValue).setIsCached(false);
         } else {
-            // The removed entry is a standard BitmapDrawable.
+            // The removed entry is a standard BitmapDrawable.newer than Android 3.0
             if (Utils.hasHoneycomb()) {
                 // We're running on Honeycomb or later, so add the bitmap
                 // to a SoftReference set for possible use with inBitmap later.
@@ -210,7 +210,7 @@ tags:
          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
              // From Android 4.4 (KitKat) onward we can re-use if the byte size of
              // the new bitmap is smaller than the reusable bitmap candidate
-             // allocation byte count.
+             // allocation byte count.4.4以上要解码的bitmap占用字节小于已经存在的bitmap即可复用该内存空间
              int width = targetOptions.outWidth / targetOptions.inSampleSize;
              int height = targetOptions.outHeight / targetOptions.inSampleSize;
              int byteCount = width * height * getBytesPerPixel(candidate.getConfig());
@@ -239,3 +239,8 @@ tags:
          return 1;
      }
      ```
+     
+## 总结
+1 android3.0以前版本：用引用计数来判断bitmap是否可以被回收，引用计数包含imageview的引用和cache对bitmap的引用，回收调用bitmap的recycle方法。
+
+2 android3.0以后（包含）：引进了BitmapFactory.Options.inBitmap. 如果这个值被设置了，decode方法会在加载内容的时候去重用已经存在的bitmap内存. 这意味着bitmap的内存是被重新利用的，这样可以提升性能, 并且减少了内存的分配与回收的次数。然而，使用inBitmap有一些限制。特别是在Android 4.4 (API level 19)之前，只支持同等大小的位图
