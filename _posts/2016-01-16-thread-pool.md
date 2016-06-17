@@ -94,7 +94,7 @@ Java API针对不同需求，利用`Executors`类提供了4种不同的线程池
 	pool-1-thread-2, index=4
 	pool-1-thread-3, index=5
 
-从运行结果可以看出，线程池大小为3，每休眠1s后将任务提交给线程池的各个线程轮番交错地执行。线程池的大小设置，可参数Runtime.getRuntime().availableProcessors()。
+从运行结果可以看出，线程池大小为3，每休眠1s后将任务提交给线程池的各个线程轮番交错地执行。线程池的大小设置，可参考Runtime.getRuntime().availableProcessors()。
 
 ### 2.3 newSingleThreadExecutor
 
@@ -323,3 +323,36 @@ BlockingQueue的插入/移除/检查这些方法，对于不能立即满足但�
 - getActiveCount：获取活动的线程数。
 
 通过扩展线程池进行监控：继承线程池并重写线程池的beforeExecute()，afterExecute()和terminated()方法，可以在任务执行前、后和线程池关闭前自定义行为。如监控任务的平均执行时间，最大执行时间和最小执行时间等。
+
+### 4.3 cpu密集型任务和IO密集型任务
+
+I/O bound 指的是系统的CPU效能相对硬盘/内存的效能要好很多，此时，系统运作，大部分的状况是 CPU 在等 I/O (硬盘/内存) 的读/写，此时 CPU Loading 不高。
+CPU bound 指的是系统的 硬盘/内存 效能 相对 CPU 的效能 要好很多，此时，系统运作，大部分的状况是 CPU Loading 100%，CPU 要读/写 I/O (硬盘/内存)，I/O在很短的时间就可以完成，而 CPU 还有许多运算要处理，CPU Loading 很高。
+
+计算密集型 (CPU-bound) 
+在多重程序系统中，大部份时间用来做计算、逻辑判断等CPU动作的程序称之CPU bound。例如一个计算圆周率至小数点一千位以下的程序，在执行的过程当中
+
+绝大部份时间用在三角函数和开根号的计算，便是属于CPU bound的程序。
+It is because the performance characteristic of most protocol codec implementations is CPU-bound, which is the same with I/O processor threads.
+
+根据以上分析，可以认为通常情况下，大部分程序针对某个特定的性能metric而言
+都可分为CPU bound 和 I/O bound两类。
+CPU bound的程序一般而言CPU占用率相当高。这可能是因为任务本身不太需要访问I/O设备，也可能是因为程序是多线程实现因此屏蔽掉了等待I/O的时间。
+而I/O bound的程序一般在达到性能极限时，CPU占用率仍然较低。这可能是因为任务本身需要大量I/O操作，而pipeline做得不是很好，没有充分利用处理器能力
+
+；还可能是因为数据局部性不是很好，导致较多page error,结果产生了大量disk I/O的开销。
+可能性很多，具体情况具体分析吧。
+?
+说到如何确定是CPU bound 还是 I/O bound，我一般用top先看达到性能极限时的CPU占用率，然后用sar，iostat等
+获得具体的i/o操作或是page error的统计数据，如果还需要更精准的信息，例如确定具体是哪些代码产生了这些开销，则
+要用到oprofile或vtune了。
+?
+通常I/O bound的程序包括web server的静态页面访问，或者是基于数据库的一些应用等。
+而大量计算型的应用都属于CPU bound吧。
+?
+最后聊一下如果在一个系统里CPU bound的程序和I/O bound的程序一起run会怎么样？
+应该是CPU bound的程序对CPU的占用率会非常不公平地接近100%吧。因为I/O bound的程序可能一个时间片还没用完就block了，放弃CPU了。而CPU bound的程序因此而得到了很多调度机会并且每次都能把CPU run完。故在这样的系统里要给I/O bound的程序更高的优先级使其能被调度得更多些。
+
+ 
+
+对于IO密集型程序来说，上层语言的程序运行差异没有那么大
