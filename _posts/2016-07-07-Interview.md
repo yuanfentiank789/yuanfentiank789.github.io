@@ -223,6 +223,7 @@ ClassLoader.loadClass(className)实际上调用的是ClassLoader.loadClass(name,
 [http://www.cnblogs.com/gw811/archive/2012/10/18/2730117.html](http://www.cnblogs.com/gw811/archive/2012/10/18/2730117.html)
 
 ### Java内存回收
+[http://www.cnblogs.com/gw811/archive/2012/10/19/2730258.html](http://www.cnblogs.com/gw811/archive/2012/10/19/2730258.html)
 
 [http://www.cnblogs.com/sunniest/p/4575144.html](http://www.cnblogs.com/sunniest/p/4575144.html)
 
