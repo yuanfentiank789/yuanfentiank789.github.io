@@ -256,3 +256,10 @@ ClassLoader.loadClass(className)实际上调用的是ClassLoader.loadClass(name,
 [http://www.cnblogs.com/yejiurui/p/4859892.html](http://www.cnblogs.com/yejiurui/p/4859892.html) 
 
 [https://www.zhihu.com/question/20207106](https://www.zhihu.com/question/20207106)
+
+## Android性能优化
+
+### 1 省电优化
+
+
+
