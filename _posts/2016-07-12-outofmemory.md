@@ -175,4 +175,124 @@ Java堆内存的OOM异常时实际应用中常见的内存溢出异常情况。�
 注意：特别提示一下，如果要尝试运行上面这段代码，记得要先保存当前的工作。由于在Windows平台的虚拟机中，Java的线程时映射到操作系统的内核线程上的，因此上述代码执行时有较大风险，可能会导致操作系统假死。
 
 运行结果：
+
+![image](http://static.oschina.net/uploads/space/2016/0428/093236_urpG_1434710.png)
+
+
+## 方法区和运行时常量池溢出
+
+由于运行时常量池是方法去的一部分，因此这两个区域的溢出测试可以放在一起进行。
+
+String.intern()方法是一个native方法，它的作用是：如果字符串常量池中已经包含一个等于此String对象的字符串，则返回代表池中这个字符串的string对象；否则，将此String对象包含的字符串添加到常量池中，并返回此String对象的引用。 在JDK1.6及之前的版本中，由于常量池分配在永久代中，我们可以通过-XX:PermSize和-XX:MaxPermSize限制方法区大小，从而间接限制其中常量池的容量，代码如下：
+
+    /**
+     * VM Args: -XX:PermSize=10M -XX:MaxPermSize=10M
+     */
+    public class RuntimeConstantPoolOOM{
+      public static void main(String[] args){
+        // 使用List保持着常量池引用，避免Full GC 回收常量池行为
+        List<String> list = new ArrayList<String>();
+        //10MB的PermSize在int范围内足够产生OOM了
+        int i = 0;
+        while(true) {
+            //调用intern方法，将字符串全部放在常量池中
+            list.add(String.valueOf(i++).intern());
+        }
+      }
+    }
     
+运行结果（JDK1.6 HotSpot JVM）：
+
+ ![image](http://static.oschina.net/uploads/space/2016/0427/193026_UmRn_1434710.png)
+ 
+ 从运行结果中可以看到，运行时常量池溢出，在OutOfMemoryError后面跟随的提示信息是“PermGen space”，说明运行时常量池属于方法区（HotSpot虚拟机中的永久代）的一部分。
+ 
+ “而使用JDK 1.7运行这段程序就不会得到相同的结果，while循环将一直进行下去。关于这个字符串常量池的实现问题，还可以引申出一个更有意思的影响，如代码清单2-7所示。”
+
+    public class RuntimeConstantPoolOOM {
+    public static void main(String[] args) {
+        String str1 = new StringBuilder("计算机").append("软件").toString();
+        System.out.println(str1 == str1.intern());
+        String str2 = new StringBuilder("ja").append("va").toString();
+        System.out.println(str2 == str2.intern());
+        String str3 = new StringBuilder("ja").append("va1").toString();
+        System.out.println(str3 == str3.intern());
+
+      }
+    }
+
+这段代码在JDK 1.6中运行，会得到两个false，而在JDK 1.7中运行，会得到一个true和一个false。产生差异的原因是：在JDK 1.6中，intern（）方法会把首次遇到的字符串实例复制到永久代中，返回的也是永久代中这个字符串实例的引用，而由StringBuilder创建的字符串实例在Java堆上，所以必然不是同一个引用，将返回false。而JDK 1.7（以及部分其他虚拟机，例如JRockit）的intern（）实现不会再复制实例，只是在常量池中记录首次出现的实例引用，因此intern（）返回的引用和由StringBuilder创建的那个字符串实例是同一个。对str2比较返回false是因为“java”这个字符串在执行StringBuilder.toString（）之前已经出现过（java这个字符串比较特殊？），字符串常量池中已经有它的引用了，不符合“首次出现”的原则，而“计算机软件”这个字符串则是首次出现的，因此返回true。
+
+jdk1.7输出结果：
+
+    true
+    false
+    true
+
+
+
+方法区用于存放Class相关信息，如类名、访问修饰符、常量池、字段描述、方法描述等。对于这些区域的测试，基本的思路是运行时产生大量的类去填满方法区，直到溢出。这里借助CGLib直接操作字节码运行时生成了大量的动态类。
+
+值得注意的是，我们在这个例子中模拟的场景并非纯粹是一个实验，这样的应用经常会出现在实际应用中：当前很多主流框架如Spring、Hibernate，在对类进行增强时，都会使用到CGLib这类字节码技术，增强的类越多，就需要越大的方法区来保证动态生成的Class可以载入内存。另外，JVM上的动态语言（例如Groovy等）通常都会持续创建类来实现语言的动态性，随着这类语言越来越流行，也越来越容易遇到以下代码类似的溢出场景：
+
+    import java.lang.reflect.Method;
+    import com.jvm.oom.HeapOOM.OOMObject;
+    import net.sf.cglib.proxy.Enhancer;
+    import net.sf.cglib.proxy.MethodInterceptor;
+    import net.sf.cglib.proxy.MethodProxy;
+
+    /**
+     * VM Args: -XX:PermSize=10M -XX:MaxPermSize=10M
+     */
+    public class JavaMethodAreaOOM{
+
+    public static void main(String[] args) {
+        while(true){
+            Enhancer e = new Enhancer();
+            e.setSuperclass(OOMObject.class);
+            e.setUseCache(false);
+            e.setCallback(new MethodInterceptor(){
+                public Object intercept(Object obj, Method method, 
+                        Object[] args, MethodProxy proxy) throws Throwable{
+                    return proxy.invokeSuper(obj,args);
+                }
+            });
+            e.create();
+        }
+        }
+    }
+    
+运行结果：
+
+    Caused by: java.lang.OutOfMemoryError: PermGen space
+    
+方法区的溢出是一种常见的内存溢出异常，一个类要被垃圾收集器回收掉，判断条件是比较苛刻的。在经常动态生成大量Class应用中，需要特别注意类的回收情况。这类除了上面提到的程序使用了CGLib字节码增强和动态语言之外，常见的还有：还有大量jsp或动态产生jsp文件的应用（JSP第一次运行时需要编译为Java类）、基于OSGi的应用（即使是同一个类文件，被不同的加载器加载也会视为不同的类）等。
+
+## 本机直接内存溢出 
+
+DirectMemory容量可通过-XX：MaxDirectMemorySize指定，如果不指定，则默认与Java堆最大值（-Xmx指定）一样，下面的代码越过了DirectByteBuffer类，直接通过反射获取Unsafe实例进行内存分配（Unsafe类的getUnsafe()方法限制了只有引导类加载器才会返回示例，也就是设计者希望只有rt.jar中的类才能使用Unsafe的功能）。因为虽然使用DirectByteBuffer分配内存也会抛出内存溢出异常，但它抛出异常时并没有真正向操作系统申请分配内存，而是通过计算得知无法分配，于是手动抛出异常，真正申请分配内存的方法是unsafe.allocateMemory()。
+
+    import java.lang.reflect.Field;
+    import sun.misc.Unsafe;
+
+    /**
+     * VM Args: -Xmx20M -XX:MaxDirectMemorySize=10M
+     */
+    public class DirectMemoryOOM{
+      private static final int _1MB = 1024*1024;
+    
+      public static void main(String[] args) throws Exception {
+        Field unsafeField = Unsafe.class.getDeclaredFields()[0];
+        unsafeField.setAccessible(true);
+        Unsafe unsafe = (Unsafe)unsafeField.get(null);
+        while(true){
+            unsafe.allocateMemory(_1MB);
+        }
+      }
+    }
+    
+运行结果：
+
+    ![image](http://static.oschina.net/uploads/space/2016/0428/092714_85sz_1434710.png)
+    
+由DirectMemory导致的内存溢出，一个明显的特征是在Heap Dump文件中不会看见明显的异常，如果发现OOM之后文件很小，而程序中有直接或简介使用了NIO，那就可以考虑一下是不是这方面的原因。
