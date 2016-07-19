@@ -247,6 +247,76 @@ tags:
       3.    如果两个对象根据equals(Object)方法比较是不相等的，那么调用这两个对象中任意一个对象的hashCode方法，则不一定要产生不同的整数结果。但是程序员应该知道，给不相等的对象产生截然不同的整数结果，有可能提高散列表的性能。
       
    如果类没有覆盖hashCode方法，那么Object中缺省的hashCode实现是基于对象地址的，就像equals在Object中的缺省实现一样。如果我们覆盖了equals方法，那么对象之间的相等性比较将会产生新的逻辑，而此逻辑也应该同样适用于hashCode中散列码的计算，既参与equals比较的域字段也同样要参与hashCode散列码的计算。见下面的示例代码：
+   
+     public final class PhoneNumber {
+        private final short areaCode;
+        private final short prefix;
+        private final short lineNumber;
+        public PhoneNumber(int areaCode,int prefix,int lineNumber) {
+            //做一些基于参数范围的检验。
+            this.areaCode = areaCode;
+            this.prefix = prefix;
+            this.lineNumber = lineNumber;
+        }
+        @Override public boolean equals(Object o) {
+            if (o == this)
+                return true;
+            if (!(o instanceof PhoneNumber)) 
+                return false;
+            PhoneNumber pn = (PhoneNumber)o;
+            return pn.lineNumber = lineNumber && pn.prefix == prefix && pn.areaCode = areaCode;
+        }
+    }
+    public static void main(String[] args) {
+        Map<PhoneNumber,String> m = new HashMap<PhoneNumber,String>();
+        PhoneNumber pn1 = new PhoneNumber(707,867,5309);
+        m.put(pn1,"Jenny");
+        PhoneNumber pn2 = new PhoneNumber(707,867,5309);
+        if (m.get(pn) == null)
+            System.out.println("Object can't be found in the Map");
+    }
+    
+从以上示例的输出结果可以看出，新new出来的pn2对象并没有在Map中找到，尽管pn2和pn1的相等性比较将返回true。这样的结果很显然是有悖我们的初衷的。如果想从Map中基于pn2找到pn1，那么我们就需要在PhoneNumber类中覆盖缺省的hashCode方法，见如下代码：
+
+    @Override public int hashCode() {
+        int result = 17;
+        result = 31 * result + areaCode;
+        result = 31 * result + prefix;
+        result = 31 * result + lineNumber;
+        return result;
+    }
+    
+在上面的代码中，可以看到参与hashCode计算的域字段也同样参与了PhoneNumber的相等性(equals)比较。对于生成的散列码，推荐不同的对象能够尽可能生成不同的散列，这样可以保证在存入HashMap或HashSet中时，这些对象被分散到不同的散列桶中，从而提高容器的存取效率。对于有些不可变对象，如果需要被频繁的存取于哈希集合，为了提高效率，可以在对象构造的时候就已经计算出其hashCode值，hashCode()方法直接返回该值即可，如：
+
+    public final class PhoneNumber {
+        private final short areaCode;
+        private final short prefix;
+        private final short lineNumber;
+        private final int myHashCode;
+        public PhoneNumber(int areaCode,int prefix,int lineNumber) {
+            //做一些基于参数范围的检验。
+            this.areaCode = areaCode;
+            this.prefix = prefix;
+            this.lineNumber = lineNumber;
+            myHashCode = 17;
+            myHashCode = 31 * myHashCode + areaCode;
+            myHashCode = 31 * myHashCode + prefix;
+            myHashCode = 31 * myHashCode + lineNumber;
+        }
+        @Override public boolean equals(Object o) {
+            if (o == this)
+                return true;
+            if (!(o instanceof PhoneNumber)) 
+                return false;
+            PhoneNumber pn = (PhoneNumber)o;
+            return pn.lineNumber = lineNumber && pn.prefix == prefix && pn.areaCode = areaCode;
+        }
+        @Override public int hashCode() {
+            return myHashCode;
+        }
+    }
+    
+另外，该条目还建议不要仅仅利用某一域字段的部分信息来计算hashCode，如早期版本的String，为了提高计算哈希值的效率，只是挑选其中16个字符参与hashCode的计算，这样将会导致大量的String对象具有重复的hashCode，从而极大的降低了哈希集合的存取效率。
       
       
 # 十、始终要覆盖toString
@@ -376,7 +446,7 @@ Clone提供一种语言之外的机制：无需调用构造器就可以创建对
 
 拷贝工厂是类似于拷贝构造器的静态工厂：public static Yum newInstance(Yum yum);
 
-它们不依赖于有风险的、语言之外的对象创建机制，也不要求遵守尚未制定好文档的规范，不会与fianl域的正常使用发生冲突，不抛出不必要的受检异常，不需要进行类型转换。
+它们不依赖于有风险的、语言之外的对象创建机制，也不要求遵守尚未制定好文档的规范，不会与final域的正常使用发生冲突，不抛出不必要的受检异常，不需要进行类型转换。
 
 拷贝构造器或者拷贝工厂可以带一个参数，参数类型是通过该类实现的接口，例如所有通用集合实现都提供一个拷贝构造器，它的参数类型是Collection或者Map。基于接口的拷贝构造器和拷贝工厂允许客户选择拷贝的实现类型，例如假设有一个HashSet s，希望把它拷贝成一个TreeSet，clone方法无法提供这样的功能，但用转换构造器实现：new TreeSet(s)。 
 
