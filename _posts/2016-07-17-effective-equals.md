@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Effective Java之对象通用方法 (57-65)"
+title:  "Effective Java之对象通用方法 (8-12)"
 date:   2016-07-17 1:05:00
 catalog:  true
 tags:
