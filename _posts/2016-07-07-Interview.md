@@ -577,3 +577,153 @@ Battery Historian是Android 5.0开始引入的新API。通过下面的指令，�
     }
 
 
+## 高德面试题
+
+### 1 编程实现一个函数，输入为一个奇数n，（1）输出为n*n的正方形，每个元素为字母A；(2)输出一个菱形，该菱形满足：中间一行为n个元素，像上下两个方向逐层递减2个元素个数，第一行和最后一行都为1.
+
+分析：这类题一般都是用二维数组来解，正方形没什么问题，菱形打印：一行一行填充数组，定义low和high两个指针，初始指向中间位置mid，索引处在low和high中间填充为1 ，根据行数，改变low和high的位置，最后打印数组，代码实现如下：
+
+    private static void printRhomb(int n) {
+        if (n % 2 == 0) {
+            return;
+        }
+        int[][] postions = new int[n][n];
+        int mid = n / 2;
+        for (int i = 0, low = mid, high = mid; i < postions.length; i++) {
+            int[] row = postions[i];
+            for (int j = 0; j < row.length; j++) {
+                if (j >= low && j <= high)
+                    row[j] = 1;
+                if (row[j] == 1) {
+                    System.out.print('*');
+                } else {
+                    System.out.print(" ");
+                }
+            }
+            if (i < mid) {
+                low--;
+                high++;
+            } else {
+                low++;
+                high--;
+            }
+            System.out.println();
+        }
+    }
+    
+
+输入11，输出如下：
+
+
+         *     
+        ***    
+       *****   
+      *******  
+     ********* 
+    ***********
+     ********* 
+      *******  
+       *****   
+        ***    
+         * 
+         
+  
+### 2 dialog的context能否用Application？
+
+答案应该是不可以，会报如下错误：
+
+  ![image](/images/interview/Snip20160722_5.png)                                                                                         
+                                                                                        
+                                                                                        
+根据日志可以知道在android.view.ViewRootImpl.setView(）方法中抛出了该运行时异常。                                                
+     
+可在android源码中查找该类的setView方法，
+
+[https://android.googlesource.com/platform/frameworks/base/+/master/core/java/android/view/ViewRootImpl.java](https://android.googlesource.com/platform/frameworks/base/+/master/core/java/android/view/ViewRootImpl.java)
+
+
+发现如下代码：
+
+    if (res < WindowManagerGlobal.ADD_OKAY) {
+                    mAttachInfo.mRootView = null;
+                    mAdded = false;
+                    mFallbackEventHandler.setView(null);
+                    unscheduleTraversals();
+                    setAccessibilityFocus(null, null);
+                    switch (res) {
+                        case WindowManagerGlobal.ADD_BAD_APP_TOKEN:
+                        case WindowManagerGlobal.ADD_BAD_SUBWINDOW_TOKEN:
+                            throw new WindowManager.BadTokenException(
+                                    "Unable to add window -- token " + attrs.token
+                                    + " is not valid; is your activity running?");
+                        case WindowManagerGlobal.ADD_NOT_APP_TOKEN:
+                            throw new WindowManager.BadTokenException(
+                                    "Unable to add window -- token " + attrs.token
+                                    + " is not for an application");
+                                    
+而WindowManagerGlobal.ADD_OKAY的值为0.
+
+
+### 3 在没有代码的情况下，如何查看某一app中某一变量的当前值？
+
+当时回答的是，在sd卡放置文件作为log开关，面试官想要更简单的答案，事后问了下，答案是可以获取该进程的内存快照，通过heap查找该变量所在的对象，即可看到该对象所有属性的值，as中就可以完成。
+
+获取内存快照后，选择相关对象，在instance窗口就可以看到该对象所有属性值。
+
+### 4 内部类能否访问外部类私有变量？
+
+答案是肯定的，非静态内部类会持有一个外部类的引用，可以在内部类内部访问外部类的一起属性，无论内部类有没有访问外部类的属性。下图例子外部类为Printrhomb:
+
+    public class Printrhomb {
+
+    private int outInt;
+
+    public static void main(String[] args) {
+        InnerClass innerClass = new Printrhomb().new InnerClass();
+    }
+
+    class InnerClass {
+        public void test() {
+            System.out.println(outInt);
+        }
+    }
+    }
+    
+实例化一个内部类后，通过断点观察该内部类的成员变量：
+
+![image](/images/interview/Snip20160722_6.png)
+
+有一个对外部类实例的引用，名字为this$0.
+
+### 5 intent传递数据大小有没有限制？
+
+大小肯定是有限制的，因为手机内存空间是有限的嘛。具体是多少，不太确定，实际测试中利用intent传递了一个bitmap对象，大概有20M，点击启动activity后，界面无响应。网上说会抛出TransactionTooLargeException，这个异常中说大小限制为1MB，实际测试并未抛出异常，而是无响应。logcat中可以看到：
+
+    07-22 15:25:46.830 2339-2339/com.example.android.displayingbitmaps E/JavaBinder: !!! FAILED BINDER TRANSACTION !!!
+    07-22 15:27:59.341 2339-2339/com.example.android.displayingbitmaps E/JavaBinder: !!! FAILED BINDER TRANSACTION !!!
+    
+说明intent也是通过binder来进行传递数据的。
+
+
+### 6 什么是泛型擦除？
+
+前面已经说了，Java的泛型是伪泛型。为什么说Java的泛型是伪泛型呢？因为，在编译期间，所有的泛型信息都会被擦除掉。正确理解泛型概念的首要前提是理解类型擦出（type erasure）。
+
+Java中的泛型基本上都是在编译器这个层次来实现的。在生成的Java字节码中是不包含泛型中的类型信息的。使用泛型的时候加上的类型参数，会在编译器在编译的时候去掉。这个过程就称为类型擦除。
+
+参考
+
+[http://blog.csdn.net/lonelyroamer/article/details/7868820](http://blog.csdn.net/lonelyroamer/article/details/7868820)
+
+
+### 7 activity生命周期的回调者是谁？
+
+通过断点可以发现是在ActivityThread类中，有一系列与Activity生命周期对应的方法：
+
+![image](/images/interview/Snip20160722_8.png)
+
+### 8 aidl通信是同步还是异步？如何实现异步通信？
+
+aidl是Android Interface Description Language的简称，
+
+
