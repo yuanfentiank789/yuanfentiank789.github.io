@@ -35,6 +35,8 @@ gradle一个很有趣的功能是可以定义多个variants，或者叫做produc
  
  那么，不同flavor都能自定义那些部分呢？目前结论是all，包括res文件和source code，以下都以开发环境（测试版）和生产环境（正式版）为例来讲解如何构建不同版本的flavor。
  
+最终apk的种类数：buildtype*falvor。
+ 
 ## 如何定义flavor
 
  在build.gradle文件中，如下定义你想要的flavor：
