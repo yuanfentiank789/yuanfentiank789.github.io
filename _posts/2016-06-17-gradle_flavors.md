@@ -39,7 +39,7 @@ gradle一个很有趣的功能是可以定义多个variants，或者叫做produc
 
  在build.gradle文件中，如下定义你想要的flavor：
 
-    ```
+    
     productFlavors {  
         ...
         devel {
@@ -50,7 +50,7 @@ gradle一个很有趣的功能是可以定义多个variants，或者叫做produc
             ...
         }
     }
-    ```
+    
     
    创建完后可以在build variant窗口切换不同的flavor，每个flavor都能自定义那些东西？接下来一一说明：
    
@@ -58,8 +58,7 @@ gradle一个很有趣的功能是可以定义多个variants，或者叫做produc
 如何在同一手机上同时安装开发版和正式版的app？你应该知道，同时只能安装一个同一包名的apk，如果安装时，手机上已经有该包名的apk，则新的apk会覆盖安装旧的apk。现在用flavor实现该功能，你只需要做一件事：为每个flavor定义一个applicationId,也就是该flavor的包名。
 
 
-
-    ```
+    
     android {  
     productFlavors {
         devel {
@@ -71,41 +70,41 @@ gradle一个很有趣的功能是可以定义多个variants，或者叫做produc
         }
     }
     }
-    ```
+    
     
 ## flavor-实现不同变量配置
 
 有时候不同flavor可能有不同的参数配置，在代码里动态获取，一样可以通过flavor实现，如下，为prod这个flavor配置了3个变量，格式为：buildConfigField 类型, 变量名, 变量值。
 
-    ```
+    
     prod {  
     applicationId "zuul.com.android"
     buildConfigField 'String', 'HOST', '"http://api.zuul.com"'
     buildConfigField 'String', 'FLAVOR', '"prod"'
     buildConfigField "boolean", "REPORT_CRASHES", "true"
         }
-    ```
+    
 
 那么该如何获取这些属性呢？如下，通过BuildConfig类即可获取到配置的这些变量值。
 
-    ````
+    
     BuildConfig.HOST  
     BuildConfig.FLAVOR  
     BuildConfig.REPORT_CRASHES    
-    ````
+    
 
 
 ## flavor——实现不同res
 
 先看下需求，现在需要打包测试和开发两个环境的apk，这两个apk唯一不同的地方是，访问的后台服务器不同，传统的实现方式是：在代码里定义两个同名变量，根据需要注释掉一个，如下：
 
-    ```
+    
     //线上环境
      public static final String root_url = "http://client.aaa.bbb.com";
 
     // 测试地址
     //    public static final String root_url = "http://221.179.193.164/xxx/api";
-    ```
+    
     
 这样能满足需求，但有几个问题：
 
@@ -125,7 +124,7 @@ gradle一个很有趣的功能是可以定义多个variants，或者叫做produc
 
 （1）在project/app/build.gradle中的android部分增加dev和product两个flavor：
 
-    ```    
+        
     android {
     compileSdkVersion 23
     buildToolsVersion "23.0.3"
@@ -142,7 +141,7 @@ gradle一个很有趣的功能是可以定义多个variants，或者叫做produc
     }
     ...
     }
-    ```
+    
    猜下会发生什么？给每个flavor定义了一个applicationId，也就是包名，意味着我们可以在同一device上安装两个不同flavor的apk，同时applicationId也只能在flavor和defaultConfig部分定义，flavor中的applicationId将覆盖defaultConfig中的id
 （2）在project/app/src目录上右键---->new---->Android Resource File，
     ![image](/images/gradle/Snip20160617_9.png)
@@ -161,18 +160,18 @@ gradle一个很有趣的功能是可以定义多个variants，或者叫做produc
  
  dev 
  
-     ```
+     
      <resources>
         <string name="root_url">"http://221.179.193.164/xxx/api</string>
     </resources>    
-     ```
+     
 product
 
-    ```
+    
     <resources>
         <string name="root_url">http://client.aaa.bbb.com</string>
     </resources>
-    ```
+    
 
 
 
@@ -185,7 +184,7 @@ product
 
 一个多flavor，每个flavor的source code不同的结构图如下：
 
-     ```
+     
      project/
         |
         |---src/
@@ -216,7 +215,7 @@ product
         |      |                 |-----classA.java
         |      |                 |-----classB.java
      
-     ```
+     
 
 有如下几点需要说明：
 
