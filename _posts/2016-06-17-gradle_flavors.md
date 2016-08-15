@@ -105,6 +105,9 @@ gradle一个很有趣的功能是可以定义多个variants，或者叫做produc
     BuildConfig.REPORT_CRASHES    
     
 
+另外，还可用于Log开关的控制。
+    
+
 
 ## flavor——实现不同res
 
