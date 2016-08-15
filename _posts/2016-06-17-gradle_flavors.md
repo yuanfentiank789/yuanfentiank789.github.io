@@ -73,19 +73,29 @@ gradle一个很有趣的功能是可以定义多个variants，或者叫做produc
     }
     }
     
+此处会覆盖defaultConfig的applicationId包名。
     
+   
+ > 注意：manifest和build.gradle包名不一致时，build.gradle包名优先级高，编译时会合并。
+ 
 ## flavor-实现不同变量配置
 
 有时候不同flavor可能有不同的参数配置，在代码里动态获取，一样可以通过flavor实现，如下，为prod这个flavor配置了3个变量，格式为：buildConfigField 类型, 变量名, 变量值。
 
     
     prod {  
-    applicationId "zuul.com.android"
-    buildConfigField 'String', 'HOST', '"http://api.zuul.com"'
+    applicationId "com.android.prod"
+    buildConfigField 'String', 'HOST', '"http://api.prod.com"'
     buildConfigField 'String', 'FLAVOR', '"prod"'
     buildConfigField "boolean", "REPORT_CRASHES", "true"
         }
     
+    devel {  
+    applicationId "com.android.devel"
+    buildConfigField 'String', 'HOST', '"http://api.devel.com"'
+    buildConfigField 'String', 'FLAVOR', '"prod"'
+    buildConfigField "boolean", "REPORT_CRASHES", "true"
+        }
 
 那么该如何获取这些属性呢？如下，通过BuildConfig类即可获取到配置的这些变量值。
 
@@ -98,7 +108,7 @@ gradle一个很有趣的功能是可以定义多个variants，或者叫做produc
 
 ## flavor——实现不同res
 
-先看下需求，现在需要打包测试和开发两个环境的apk，这两个apk唯一不同的地方是，访问的后台服务器不同，传统的实现方式是：在代码里定义两个同名变量，根据需要注释掉一个，如下：
+和前边需求一样，现在利用不同flavor采用不同资源文件实现。现在需要打包测试和开发两个环境的apk，这两个apk唯一不同的地方是，访问的后台服务器不同，传统的实现方式是：在代码里定义两个同名变量，根据需要注释掉一个，如下：
 
     
     //线上环境
@@ -177,6 +187,7 @@ product
 
 
 
+### 为不同flavor提供不同图标
 
 但是我们如何能快速知道当前安装版本是开发版还是正式版呢？一个简单的办法是：通过icon，也就是提供不同的launcher图标。然后在build variant窗口切换flavor即可打包不同flavor的apk，如图：
 
