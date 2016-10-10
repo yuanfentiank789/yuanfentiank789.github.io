@@ -193,6 +193,97 @@ window.jsInterface 这表示在window上声明了一个Js对象，声明方法�
 项目案例下载地址： 
 http://download.csdn.net/detail/jiangwei0910410003/9641825
 
+
+
+## Webview调用JavaScript后获取返回值
+
+前边部分提到了javascript获取java代码执行的返回值，主要包括两种方式：
+
+（1）java代码执行完毕后，主动调用JavaScript函数，把值传递给JavaScript；
+
+（2）拦截prompt方法，通过JsPromptResult的confirm方法传回返回值。
+
+下边讨论java获取JavaScript执行后的返回值：
+
+一般java执行js的函数为：
+
+    /**
+     * Loads the given URL.
+     *
+     * @param url the URL of the resource to load
+     */
+    public void loadUrl(String url) {
+        checkThread();
+        mProvider.loadUrl(url);
+    }
+    
+ 可以看到这个函数是没有返回值的，为了解决这个问题，Android在4.4以后引入了一个新的API：
+ 
+     /**
+     * Asynchronously evaluates JavaScript in the context of the currently displayed page.
+     * If non-null, |resultCallback| will be invoked with any result returned from that
+     * execution. This method must be called on the UI thread and the callback will
+     * be made on the UI thread.
+     *
+     * @param script the JavaScript to execute.
+     * @param resultCallback A callback to be invoked when the script execution
+     *                       completes with the result of the execution (if any).
+     *                       May be null if no notificaion of the result is required.
+     */
+    public void evaluateJavascript(String script, ValueCallback<String> resultCallback) {
+        checkThread();
+        mProvider.evaluateJavaScript(script, resultCallback);
+    }
+    
+调用该函数，通过传入一个callback来接收返回值。那么在4.4以下怎么办呢？
+
+既然我们可以在java中调用js代码，那就可以为所欲为了，分为两步：
+
+step 1 ：向js中注入一个java对象:javaObj;
+
+    /**
+     * Passed in addJavascriptInterface of WebView to allow web views's JS execute
+     * Java code
+     */
+    public class JavaScriptInterface {
+	private final CallJavaResultInterface mCallJavaResultInterface;
+
+	public JavaScriptInterface(CallJavaResultInterface callJavaResult) {
+		mCallJavaResultInterface = callJavaResult;
+	}
+
+	@JavascriptInterface
+	public void returnResultToJava(String value, int callIndex) {
+		mCallJavaResultInterface.jsCallFinished(value, callIndex);
+	}
+    }
+
+
+
+    final JavaScriptInterface jsInterface = new JavaScriptInterface(callJavaResult);
+		mWebView.addJavascriptInterface(jsInterface, "javaObj");
+		
+		
+
+step 2: 使用javaObj回调：
+
+     mWebView.loadUrl("javaObj.returnResultToJava(eval('Math.sqrt(2 * 8);'), 2);");
+     
+ 就可以在JavaScriptInterface中接收返回值了。
+ 
+ 该方法实现可以参考开源库：
+ 
+ [https://github.com/evgenyneu/js-evaluator-for-android](https://github.com/evgenyneu/js-evaluator-for-android)
+ 
+ 和这个库的实现原理是一样的。
+ 
+ 但是4.2以下又有安全问题，于是终极方案出来了：
+ 
+ 通过js的prompt方法回传参数，java中拦截prompt方法。
+ 
+ 
+
 ## 总结
 
 在Android中WebView的作用还是举足轻重的，加上现在很多应用都开始采用网页版功能，那么在这个过程中无法避免就是需要JS和本地交互，本文就详细的介绍了现阶段的三种交互方式，每种方式都有缺点和优点，当然最好的方式还是采用系统提供的也就是本文介绍的第一种方式，但是需要修复Android4.2以下存在的漏洞问题即可。
+
