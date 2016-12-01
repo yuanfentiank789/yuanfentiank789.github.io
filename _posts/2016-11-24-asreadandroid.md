@@ -137,7 +137,25 @@ tags:
 
 [点我下载](https://github.com/yuanfentiank789/yuanfentiank789.github.io/blob/master/asset/idegen.jar)
 
+## 扩展：m、mm、mmm编译命令的使用
 
+android源码目录下的build/envsetup.sh文件，描述编译的命令：
+
+- m:       Makes from the top of the tree. 
+- mm:      Builds all of the modules in the current directory. 
+- mmm:     Builds all of the modules in the supplied directories. 
+
+要想使用这些命令，首先需要在android源码根目录执行. build/envsetup.sh 脚本设置环境
+
+* m：编译所有的模块 
+* mm：编译当前目录下的模块，当前目录下要有Android.mk文件 
+* mmm：编译指定路径下的模块，指定路径下要有Android.mk文件 
+
+下面举个例子说明，假设我要编译android下的\hardware\libhardware_legacy\power模块，当前目录为源码根目录，方法如下： 
+
+    . build/envsetup.sh
+    cd hardware/libhardware_legacy/power/ 
+    mm 
 
 
 
