@@ -34,7 +34,7 @@ Java的多线程是一个很复杂的主题,需要耗费大量的注意力特别
     
 2 **notify()** : 唤醒一个在同一对象锁上等待（该线程不参与本次竞争）的线程，需要注意的是：执行这个方法并不会真正释放该线程持有的对象锁，只是告诉在同一对象锁上等待的线程可以被唤醒了，直到synchronized代码块执行完才会释放锁。notify()的一般用法如下：
 
-    ```
+    
     synchronized(lockObject) 
     {
         //establish_the_condition;
@@ -43,18 +43,18 @@ Java的多线程是一个很复杂的主题,需要耗费大量的注意力特别
      
        //any additional code if needed
     }
-    ```
+    
 
 3 **notifyAll()**: 唤醒所有在同一对象锁上等待（该线程不参与本次竞争）的线程，具有最高优先级的线程将第一个运行在大多数情况下，但不能完全保证，其他和notify（）方法一样,一般用法如下：
 
-    ````
+    
     synchronized(lockObject) 
     {
         establish_the_condition;
  
         lockObject.notifyAll();
     } 
-    ```
+   
     
 >In general, a thread that uses the wait() method confirms that a condition does not exist (typically by checking a variable) and then calls the wait() method. When another thread establishes the condition (typically by setting the same variable), it calls the notify() method. The wait-and-notify mechanism does not specify what the specific condition/ variable value is. It is on developer’s hand to specify the condition to be checked before calling wait() or notify().
 
