@@ -148,7 +148,7 @@ cmd可选值
 
 **场景2：查询某个App所有的广播状态**
 
-     dumpsys activity s com.sina.weibo
+     dumpsys activity b com.sina.weibo
 
 ![dumpsys_broadcast](/images/tools/dumpsys_broadcast.png)
 
@@ -189,6 +189,22 @@ cmd可选值
     dumpsys activity oom //进程oom状态
 
 
-> 由于本人最近刚刚换工作，个人下班时间严重缩减，迟迟没有更新博客，今天就先写到这里，后续再更新。
+## 四 补充
+
+## 4.1 查看所有系统Service
+
+```
+//只能用于查看所有系统Service；
+adb shell service list
+
+// List all services
+adb shell dumpsys activity services
+
+// List all services containing "myservice" in its name
+adb shell dumpsys activity services myservice
+```
+
+
+
 
 
