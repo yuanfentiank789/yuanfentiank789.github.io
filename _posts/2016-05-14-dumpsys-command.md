@@ -185,13 +185,12 @@ cmd可选值
 
 还有很多场景，会用到不同的参数，这里就不再一一列举，建议大家多去尝试，慢慢地就更加熟练，再比如：
 
-    dumpsys activity top //当前界面app状态
+    dumpsys activity top //当前界面app状态,功能同AS中Android Monitor的Activity Manager state
     dumpsys activity oom //进程oom状态
 
 
 ## 四 补充
 
-## 4.1 查看所有系统Service
 
 ```
 //只能用于查看所有系统Service；
