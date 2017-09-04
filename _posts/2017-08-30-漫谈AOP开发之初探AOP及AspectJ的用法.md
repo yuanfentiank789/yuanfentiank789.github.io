@@ -107,7 +107,7 @@ public class AspectTest {
 
 ```   
 public aspect AuthAspectj {
-        // execution(* com.mybry.aop.service.*.*(..)执行 任意返回值 改包下的任意类的任意方法形参不限
+        // execution(* com.example.aspectj.*.*(..)执行 任意返回值 该包下的任意类的任意方法形参不限
         before():execution(* com.example.aspectj.*.*(..)){
 // 对原来方法进行修改、增强。
         System.out.println("----------模拟执行权限检查----------");
@@ -128,7 +128,7 @@ cd com/example/aspectj/
  
 ```
  ----------模拟执行权限检查----------
-execute main methid!!
+execute main method!!
 
 ```  
    
