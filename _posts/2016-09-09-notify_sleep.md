@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Android性能：远程触发GC"
+title:  "Java上调用Object.wait()函数后，当前线程是否还拿着Object对象锁？"
 date:   2016-09-09 1:05:00
 catalog:  true
 tags:
