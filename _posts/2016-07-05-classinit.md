@@ -1,10 +1,12 @@
 ---
 layout: post
-title:  Java类中的初始化顺序"
+title:  Java类中的初始化顺序
 date:   2016-07-05 1:05:00
 catalog:  true
 tags:
     - 初始化
+    - static
+    - init
   
        
 
