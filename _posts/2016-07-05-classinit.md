@@ -18,6 +18,12 @@ tags:
 
 废话先不说，先上一段代码：
 
+    public class MyClass {
+
+    public static void main(String[] args) {
+        new Student();
+    }
+
     static class Student {
         int age = defaultAge();
         static int height = defaultHeight();
@@ -44,7 +50,7 @@ tags:
             return 170;
         }
     }
-    
+    }    
  上面这一小段程序的输出顺序为：
  
      0 defaultHeight
@@ -56,9 +62,25 @@ tags:
 从输出的第一行可以看出，static的height变量在被defaultHeight()赋值前已经有了初始值，我这里称这一步为默认初始化这一点非常重要，所有的成员变量（不论是不是static的）在声明时如果显式进行了赋值，那么这个成员变量至少会被初始化两次，一次是编译器自动的初始化（基本类型像int、false初始化为0、false，对象初始化为null）也就是默认初始化，然后是显式初始化。
 对于输出的其他行，大家应该没什么大问题，两大基本原则就是：
 
-1 有static先初始化static，然后是非static的
+1 先初始化static成员，后初始化非static成员；
+  static成员：
+  
+  ```
+  static int height = defaultHeight();
+  static {
+            System.out.println("static block");
+        }
+  ```
+  非static成员：
+  
+  ```
+  int age = defaultAge();
+      {
+            System.out.println("non-static block");
+        }
+  ```
 
-2 显式初始化（成员变量），构造块初始化（如果有的话），最后调用构造函数进行初始化
+2 static部分和非static部分分别遵循：先显式初始化（成员变量），后构造块初始化（如果有的话），最后调用构造函数进行初始化
 
 《Thinking in java》中总结创建对象时成员的初始化过程（以一个Dog.java类为例）：
 
