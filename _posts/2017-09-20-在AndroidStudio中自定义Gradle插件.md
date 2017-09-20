@@ -155,7 +155,21 @@ hello gradle plugin!
 ```
 
 但是在library module中同样配置却一直无法生效，暂时没有找到原因，在Stack Overflow上也有人遇到同样问题，有个国外程序员自己开发插件解决了这个问题，语音是kotlin，github地址如下：
-[https://github.com/Archinamon/GradleAspectJ-Android](https://github.com/Archinamon/GradleAspectJ-Android)，配置也很简单。
+[https://github.com/Archinamon/GradleAspectJ-Android](https://github.com/Archinamon/GradleAspectJ-Android)，配置也很简单:
+
+```
+apply plugin: 'com.archinamon.aspectj'
+
+buildscript {
+    repositories {
+        mavenCentral()
+        maven { url "https://jitpack.io" }
+    }
+    dependencies {
+        classpath 'com.github.Archinamon:GradleAspectJ-Android:3.0.3'
+    }
+}
+```
 
 ## 4 开发只针对当前项目的Gradle插件
 
