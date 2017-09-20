@@ -154,6 +154,9 @@ hello gradle plugin!
 
 ```
 
+但是在library module中同样配置却一直无法生效，暂时没有找到原因，在Stack Overflow上也有人遇到同样问题，有个国外程序员自己开发插件解决了这个问题，语音是kotlin，github地址如下：
+[https://github.com/Archinamon/GradleAspectJ-Android](https://github.com/Archinamon/GradleAspectJ-Android)，配置也很简单。
+
 ## 4 开发只针对当前项目的Gradle插件
 
 前面我们讲了如何自定义gradle插件并且打包出去，可能步骤比较多。有时候，你可能并不需要打包出去，只是在这一个项目中使用而已，那么你无需打包这个过程。
