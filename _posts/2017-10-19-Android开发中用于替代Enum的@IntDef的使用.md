@@ -1,18 +1,19 @@
 ---
 
 layout: post
-title:  "Android开发中用于替代Enum的@IntDef的使用"
-date:   2017-10-19 1:06:00
+title:  "Android中Enum的替代方案"
+date:   2017-11-16 1:06:00
 catalog:  true
 tags:
 
-   - @InfDef
-   - Enum
+   - intdef
+   
    
    
        
    
 ---
+
 
 在Android的官方文档的内存管理中http://developer.android.com/training/articles/memory.html#Overhead 提到由于Enum通常需要两倍以上的存储空间，因此应当尽量避免Enum的使用。对此，Google官方推出了IntDef作为对Enum的替代。以下通过一个具体的例子来说明其用法：
 例如我们有如下的一组Enum:
