@@ -162,6 +162,44 @@ public void uncaughtException(Thread t, Throwable e) {
  
 ## 四、总结
 
-1. 如果设置了实例属性uncaughtExceptionHandler（每个线程对象独有），则调用该处理器对未捕获异常进行处理；
- 2. 如果没有设置未捕获异常处理器（即1中的uncaughtExceptionHandler），则将线程对象的ThreadGroup当作未捕获异常处理器，在ThreadGroup中获取所以线程对象共享的静态属性defaultUncaughtExceptionHandler来处理未捕获异常（前提是静态的set方法你调用了并且传入处理器实例）；
- 3. 如果两个set方法都没有调用，那么异常栈信息将被推送到System.err进行处理；
+### uncaughtExceptionHandler
+
+ 如果设置了实例属性uncaughtExceptionHandler（每个线程对象独有），则调用该处理器对未捕获异常进行处理；
+   
+```
+// Thread
+   private void dispatchUncaughtException(Throwable e) {
+        getUncaughtExceptionHandler().uncaughtException(this, e);
+    }
+    
+     public UncaughtExceptionHandler getUncaughtExceptionHandler() {
+        return uncaughtExceptionHandler != null ?
+            uncaughtExceptionHandler : group;
+    }
+```
+
+### ThreadGroup ==> defaultUncaughtExceptionHandler
+如果没有设置未捕获异常处理器（即1中的uncaughtExceptionHandler），则将线程对象的ThreadGroup当作未捕获异常处理器，在ThreadGroup中获取所以线程对象共享的静态属性defaultUncaughtExceptionHandler来处理未捕获异常（前提是静态的set方法你调用了并且传入处理器实例）；
+
+    ```
+    // ThreadGroup
+    public void uncaughtException(Thread t, Throwable e) {
+        if (parent != null) {
+            parent.uncaughtException(t, e);
+        } else {
+            Thread.UncaughtExceptionHandler ueh =
+                Thread.getDefaultUncaughtExceptionHandler();
+            if (ueh != null) {
+                ueh.uncaughtException(t, e);
+            } else if (!(e instanceof ThreadDeath)) {
+                System.err.print("Exception in thread \""
+                                 + t.getName() + "\" ");
+                e.printStackTrace(System.err);
+            }
+        }
+    }
+```
+
+### System.err
+  如果两个set方法都没有调用，那么异常栈信息将被推送到System.err进行处理；
+
