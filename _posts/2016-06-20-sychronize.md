@@ -61,7 +61,7 @@ Java的多线程是一个很复杂的主题,需要耗费大量的注意力特别
 
 到现在为止，讲了几个你可能已经知道的基本概念，下面通过一个小程序来更好的理解如何使用这些方法得到想要的结果。
 
-##如何使用wait(), notify() and notifyAll() 方法
+## 如何使用wait(), notify() and notifyAll() 方法
 
 这个练习中，我们使用wait和notify方法解决经典的生产者，消费者问题。简单起见，我们的场景只包含一个producer和一个consumer。
 （1） Producer线程每秒产生一个资源并放入taskQueue；
@@ -71,6 +71,8 @@ Java的多线程是一个很复杂的主题,需要耗费大量的注意力特别
 （3） taskQueue同时最多可以存储5个资源；
 
 （4） 两个线程无限运行。
+
+## 生产者和消费者问题
 
 ### 生产者Thread
 
@@ -161,21 +163,83 @@ Java的多线程是一个很复杂的主题,需要耗费大量的注意力特别
     
 建议更改生产者和消费者的休眠时间得到不同的输出。
 
+## 多线程顺序打印
+> 有A,B,C三个线程, A线程输出A, B线程输出B, C线程输出C，要求, 同时启动三个线程, 按顺序输出ABC, 循环10次。
+
+```
+/**
+ * 1. 因为notify唤醒的线程是随机的，为保证唤醒指定的线程，一个锁上最多只能有一个线程等待；
+ * 2. 因此每个线程需要同时持有两个锁，一个等待其他线程唤醒的锁（wait），一个唤醒其他线程的锁（notify）；
+ */
+class Main {
+    public static void main(String[] args) throws Exception{
+        Object a=new Object();
+        Object b=new Object();
+        Object c=new Object();
+
+        Mythread my1=new Mythread("A",c,a);
+        Mythread my2=new Mythread("B",a,b);
+        Mythread my3=new Mythread("C",b,c);
+
+        Thread thread1=new Thread(my1);
+        Thread thread2=new Thread(my2);
+        Thread thread3=new Thread(my3);
+
+        thread1.start();
+        Thread.sleep(1000);
+        thread2.start();
+        Thread.sleep(1000);
+        thread3.start();
+        Thread.sleep(1000);
+    }
+}
+ class Mythread implements Runnable{
+    private String name="";
+    private Object pre;//用来表示上一个对象
+    private Object now;//用来表示此次对象
+    public Mythread(String name,Object pre,Object now){
+        this.name=name;
+        this.pre=pre;
+        this.now=now;
+    }
+    @Override
+    public void run(){
+        int count=10;
+        while(count>0){
+            count--;
+            synchronized(pre){
+                synchronized(now){
+                    System.out.println(name);
+                    now.notify();//唤醒下一个线程
+                }
+                try {
+                    pre.wait();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+}
+```
+
 ## 需要注意的地方
 
 
-   #调用obj的wait(), notify()方法前，必须获得obj锁，也就是必须写在synchronized(obj) {…} 代码段内。
+- 调用obj的wait(), notify()方法前，必须获得obj锁，也就是必须写在synchronized(obj) {…} 代码段内。
+- 调用obj.wait()后，线程A就释放了obj的锁，否则线程B无法获得obj锁，也就无法在synchronized(obj) {…} 代码段内唤醒A。
+- 当obj.wait()方法返回后，线程A需要再次获得obj锁，才能继续执行。
 
-　　# 调用obj.wait()后，线程A就释放了obj的锁，否则线程B无法获得obj锁，也就无法在synchronized(obj) {…} 代码段内唤醒A。
+- 如果A1,A2,A3都在obj.wait()，则B调用obj.notify()只能唤醒A1,A2,A3中的一个（具体哪一个由JVM决定）。
 
-　　# 当obj.wait()方法返回后，线程A需要再次获得obj锁，才能继续执行。
-
-　　# 如果A1,A2,A3都在obj.wait()，则B调用obj.notify()只能唤醒A1,A2,A3中的一个（具体哪一个由JVM决定）。
-
-　　# obj.notifyAll()则能全部唤醒A1,A2,A3，但是要继续执行obj.wait()的下一条语句，必须获得obj锁，因此，A1,A2,A3只有一个有机会获得锁继续执行，
+- obj.notifyAll()则能全部唤醒A1,A2,A3，但是要继续执行obj.wait()的下一条语句，必须获得obj锁，因此，A1,A2,A3只有一个有机会获得锁继续执行，
 
 　　　　例如A1，其余的需要等待A1释放obj锁之后才能继续执行。
 
-　　# 当B调用obj.notify/notifyAll的时候，B正持有obj锁，因此，A1,A2,A3虽被唤醒，但是仍无法获得obj锁。直到B退出synchronized块，释放obj锁后，
+- 当B调用obj.notify/notifyAll的时候，B正持有obj锁，因此，A1,A2,A3虽被唤醒，但是仍无法获得obj锁。直到B退出synchronized块，释放obj锁后，A1,A2,A3中的一个才有机会获得锁继续执行。
+- java.lang.IllegalMonitorStateException
+  出现java.lang.IllegalMonitorStateException错误，由以下情况导致：
+  - 当前线程不含有当前对象的锁资源的时候，调用obj.wait()方法;
+  - 当前线程不含有当前对象的锁资源的时候，调用obj.notify()方法。
+  - 当前线程不含有当前对象的锁资源的时候，调用obj.notifyAll()方法
 
-　　A1,A2,A3中的一个才有机会获得锁继续执行
