@@ -1,11 +1,11 @@
 ---
 layout: post
-title:  Android严苛模式StrictMode使用详解
-date:   2017-12-02 1:05:00
+title:  Linux C从入门到进阶
+date:   2018-09-16 1:05:00
 catalog:  true
 tags:
-    - StrictMode化
-     
+    - clion
+    - GCC     
        
 
 ---
