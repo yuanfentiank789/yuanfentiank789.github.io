@@ -87,7 +87,7 @@ ClassLoader使用的是双亲委托模型来 搜索类的，每个ClassLoader实
 
 这个加载过程的示意图如下：
 
-![image](http://7xn1yt.com1.z0.glb.clouddn.com/ClassLoaderFlow.png)
+![](https://img-blog.csdn.net/20160913070004322)
 
 ### 为什么要使用双亲委托这种模型呢？
 
